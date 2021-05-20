@@ -1145,6 +1145,7 @@ def analyze_report(report: Report,
                              show_abstract=False, show_class=True, show_depth=10,
                              show_concept=True, separator=separator)
     else:
+        separate=True
         fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
 
     return fs_df
@@ -1156,11 +1157,12 @@ def search_annual_report(corp_code: str,
                          separate: bool = False):
 
     reports = []
-    try:
+    # try:
         # 사업보고서 검색(최종보고서)
-        reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
+    reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
                                  pblntf_detail_ty='A001', page_count=100, last_reprt_at='Y')
-    except NoDataReceived:
+    # except NoDataReceived:
+    if reports == 0:
         # 감사보고서 검색
         if separate:
             pblntf_detail_ty = 'F001'
@@ -1168,10 +1170,10 @@ def search_annual_report(corp_code: str,
             pblntf_detail_ty = 'F002'
         reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
                                  pblntf_detail_ty=pblntf_detail_ty, page_count=100, last_reprt_at='Y')
-    finally:
-        if len(reports) == 0:
-            raise RuntimeError('Could not find an annual report')
-        return reports
+    # finally:
+    #     if len(reports) == 0:
+    #         raise RuntimeError('Could not find an annual report')
+    return reports
 
 
 def extract(corp_code: str,
@@ -1252,6 +1254,8 @@ def extract(corp_code: str,
                 else:
                     reports = search_filings(corp_code=corp_code, bgn_de=bgn_de, end_de=end_de,
                                              pblntf_detail_ty=all_pblntf_detail_ty[idx], page_count=100, last_reprt_at='Y')
+                if reports == 0:
+                    continue
                 length = len(reports)
                 for _ in tqdm(range(length), desc='{} reports'.format(all_report_name[idx]), unit='report'):
                     report = reports.pop(0)

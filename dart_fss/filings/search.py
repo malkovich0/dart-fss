@@ -48,6 +48,7 @@ def search(corp_code: str = None,
     SearchResults
         검색결과
     """
+
     resp = search_filings(corp_code=corp_code,
                           bgn_de=bgn_de,
                           end_de=end_de,
@@ -59,4 +60,10 @@ def search(corp_code: str = None,
                           sort_mth=sort_mth,
                           page_no=page_no,
                           page_count=page_count)
-    return SearchResults(resp)
+
+    if resp['status'] == '013':
+        resp = 0
+    else:
+        resp = SearchResults(resp)
+
+    return resp

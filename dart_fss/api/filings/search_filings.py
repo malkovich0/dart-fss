@@ -78,5 +78,5 @@ def search_filings(corp_code: str = None,
     dataset = resp.json()
 
     # Check Error
-    check_status(**dataset)
+    # check_status(**dataset)
     return dataset
