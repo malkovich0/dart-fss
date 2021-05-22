@@ -1098,7 +1098,11 @@ def sorting_columns(statements: Dict[str, DataFrame]) -> Dict[str, DataFrame]:
         else:
             ncolumns = df.columns
 
-        statements[tp] = statements[tp][ncolumns]
+        # '241520'종목의 2017.03에서 column 명이 일치하지 않아 isnull()로 제거되는 렬이 없는 경우 그대로 dataframe유지하는 것으로 수정
+        if len(df.columns) == len(ncolumns):
+            statements[tp] = statements[tp]
+        else:
+            statements[tp] = statements[tp][columns]
     return statements
 
 
@@ -1120,7 +1124,11 @@ def drop_empty_columns(df: Dict[str, DataFrame], label_df: bool = False) -> Dict
                 columns.append(key)
         # convert list to numpy array
         columns = np.array(columns, dtype=object)
-        df[tp] = df_tp[columns]
+        # '241520'종목의 2017.03에서 column 명이 일치하지 않아 isnull()로 제거되는 렬이 없는 경우 그대로 dataframe유지하는 것으로 수정
+        if len(df_tp.columns) == len(columns):
+            df[tp] = df_tp
+        else:
+            df[tp] = df_tp[columns]
     return df
 
 
