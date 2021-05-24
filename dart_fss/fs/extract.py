@@ -1139,9 +1139,14 @@ def analyze_report(report: Report,
                    separator: bool = True,
                    dataset: str = 'xbrl') -> Union[Dict[str, Optional[DataFrame]], None]:
     # 2012년 이후 데이터만 XBRL 데이터 추출
-    year = int(report.rcept_dt[:4])
+    # year = int(report.rcept_dt[:4])
+    year = int(report.report_nm[-8:-4]) #접수일자 기준이 아닌, 보고서명에 적힌 일자 기준.
     if year > 2011 and dataset == 'xbrl':
         xbrl = report.xbrl
+        if not xbrl == None:
+            if not xbrl.exist_consolidated():
+                separate = True
+                xbrl = report.xbrl
     else:
         xbrl = None
 
@@ -1153,8 +1158,11 @@ def analyze_report(report: Report,
                              show_abstract=False, show_class=True, show_depth=10,
                              show_concept=True, separator=separator)
     else:
-        separate=True
         fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
+            # 자료가 없으면 None 출력하기 때문에 연결이 없으면 0 출력.
+            if fs_df == None:
+            separate=True
+            fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
 
     return fs_df
 
