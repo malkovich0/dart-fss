@@ -1157,10 +1157,18 @@ def analyze_report(report: Report,
         fs_df = analyze_xbrl(report, fs_tp=fs_tp, separate=separate, lang=lang,
                              show_abstract=False, show_class=True, show_depth=10,
                              show_concept=True, separator=separator)
+        _, data_columns = split_columns_concept_data(fs_df['bs'].columns)  # xbrl이 출력은 되나 내부에 값이 없는 경우가 있음.
+        if np.all(data_columns == None):  # oata_columns에 빈칸과 값이 섞여 있을 때 error가 발생하여 모두 빈칸 일 때인 np.all로 수정
+            separate = False
+            fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
+            if fs_df == None:
+                separate = True
+                fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
     else:
+        separate = False
         fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
             # 자료가 없으면 None 출력하기 때문에 연결이 없으면 0 출력.
-            if fs_df == None:
+        if fs_df == None:
             separate=True
             fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
 
