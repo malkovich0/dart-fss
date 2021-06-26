@@ -925,6 +925,11 @@ def merge_fs(fs_df: Dict[str, DataFrame],
 
             _, df_columns = split_columns_concept_data(df.columns)
             _, ndf_columns =  split_columns_concept_data(ndf.columns)
+
+            # 값이 있으나 쓸 수 없는 경우 (년도 값이 없음 ex.214610, 2019.12), 추가 검색 X
+            if ndf_columns is None:
+                continue
+
             df_columns = set(df_columns.tolist())
             ndf_columns = set(ndf_columns.tolist())
 
@@ -1039,7 +1044,7 @@ def analyze_xbrl(report, fs_tp: Tuple[str] = ('bs', 'is', 'cis', 'cf'), separate
             statements[tp] = statements[tp].to_DataFrame(**option)
     return statements
 
-
+# columns을 concept과 data열로 분리
 def split_columns_concept_data(columns: pd.Index) -> Tuple[Optional[pd.Index], Optional[pd.Index]]:
     regex = re.compile(r'\d{8}')
 
@@ -1140,38 +1145,40 @@ def analyze_report(report: Report,
                    dataset: str = 'xbrl') -> Union[Dict[str, Optional[DataFrame]], None]:
     # 2012년 이후 데이터만 XBRL 데이터 추출
     # year = int(report.rcept_dt[:4])
-    year = int(report.report_nm[-8:-4]) #접수일자 기준이 아닌, 보고서명에 적힌 일자 기준.
-    if year > 2011 and dataset == 'xbrl':
-        xbrl = report.xbrl
-        if not xbrl == None:
-            if not xbrl.exist_consolidated():
-                separate = True
-                xbrl = report.xbrl
-    else:
-        xbrl = None
+    try:
+        year = int(report.report_nm[-8:-4]) #접수일자 기준이 아닌, 보고서명에 적힌 일자 기준.
+        if year > 2011 and dataset == 'xbrl':
+            xbrl = report.xbrl
+            if not xbrl == None:
+                if not xbrl.exist_consolidated():
+                    separate = True
+                    xbrl = report.xbrl
+        else:
+            xbrl = None
 
-    # XBRL File check
-    if xbrl is not None:
-        if separate is False and not xbrl.exist_consolidated():
-            raise NotFoundConsolidated('Could not find consolidated financial statements')
-        fs_df = analyze_xbrl(report, fs_tp=fs_tp, separate=separate, lang=lang,
-                             show_abstract=False, show_class=True, show_depth=10,
-                             show_concept=True, separator=separator)
-        _, data_columns = split_columns_concept_data(fs_df['bs'].columns)  # xbrl이 출력은 되나 내부에 값이 없는 경우가 있음.
-        if np.all(data_columns == None):  # oata_columns에 빈칸과 값이 섞여 있을 때 error가 발생하여 모두 빈칸 일 때인 np.all로 수정
+        # XBRL File check
+        if xbrl is not None:
+            if separate is False and not xbrl.exist_consolidated():
+                raise NotFoundConsolidated('Could not find consolidated financial statements')
+            fs_df = analyze_xbrl(report, fs_tp=fs_tp, separate=separate, lang=lang,
+                                 show_abstract=False, show_class=True, show_depth=10,
+                                 show_concept=True, separator=separator)
+            _, data_columns = split_columns_concept_data(fs_df['bs'].columns)  # xbrl이 출력은 되나 내부에 값이 없는 경우가 있음.
+            if np.all(data_columns == None):  # oata_columns에 빈칸과 값이 섞여 있을 때 error가 발생하여 모두 빈칸 일 때인 np.all로 수정
+                separate = False
+                fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
+                if fs_df == None:
+                    separate = True
+                    fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
+        else:
             separate = False
             fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
+                # 자료가 없으면 None 출력하기 때문에 연결이 없으면 0 출력.
             if fs_df == None:
-                separate = True
+                separate=True
                 fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
-    else:
-        separate = False
-        fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
-            # 자료가 없으면 None 출력하기 때문에 연결이 없으면 0 출력.
-        if fs_df == None:
-            separate=True
-            fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
-
+    except:
+        fs_df = None # report 하나씩 error가 발생하는 경우가 있어서 pass. 이는 수동으로 입력하기로.
     return fs_df
 
 
@@ -1290,6 +1297,8 @@ def extract(corp_code: str,
                                                     lang=lang,
                                                     separator=separator)
                         if statements is None:
+                            # None인 경우의 rcp를 모아서 저장하는 code 추가
+                            error_list_rcp.append(report.rcp_no)
                             warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
                             warnings.warn(warnings_text, RuntimeWarning)
                         else:
@@ -1306,6 +1315,8 @@ def extract(corp_code: str,
                                                      separator=separator,
                                                      dataset=dataset)
                         if nstatements is None:
+                            # None인 경우의 rcp를 모아서 저장하는 code 추가
+                            error_list_rcp.append(report.rcp_no)
                             warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
                             warnings.warn(warnings_text, RuntimeWarning)
                         else:
