@@ -1164,19 +1164,35 @@ def analyze_report(report: Report,
                                  show_abstract=False, show_class=True, show_depth=10,
                                  show_concept=True, separator=separator)
             _, data_columns = split_columns_concept_data(fs_df['bs'].columns)  # xbrl이 출력은 되나 내부에 값이 없는 경우가 있음.
-            if np.all(data_columns == None):  # oata_columns에 빈칸과 값이 섞여 있을 때 error가 발생하여 모두 빈칸 일 때인 np.all로 수정
+            if np.all(data_columns == None):  # data_columns에 빈칸과 값이 섞여 있을 때 error가 발생하여 모두 빈칸 일 때인 np.all로 수정
+                # 여기서부터는 xbrl이 출력안되는 경우이므로 뒤에서 반복
                 separate = False
                 fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
                 if fs_df == None:
                     separate = True
                     fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
-        else:
+                    if not fs_df == None: #개별로 html이 출력되어 값이 있는 경우
+                        _, data_columns = split_columns_concept_data(fs_df['bs'].columns)
+                        if np.all(data_columns == None):
+                            fs_df = None
+                else: #연결로 html이 출력되어 값이 있는 경우
+                    _, data_columns = split_columns_concept_data(fs_df['bs'].columns)
+                    if np.all(data_columns == None):
+                        fs_df = None
+        else: #xbrl로 출력되는것이 아예 없는 경우
             separate = False
             fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
-                # 자료가 없으면 None 출력하기 때문에 연결이 없으면 0 출력.
             if fs_df == None:
-                separate=True
+                separate = True
                 fs_df = analyze_html(report, fs_tp=fs_tp, separate=separate, lang=lang)
+                if not fs_df == None:  # 개별로 html이 출력되어 값이 있는 경우
+                    _, data_columns = split_columns_concept_data(fs_df['bs'].columns)
+                    if np.all(data_columns == None):
+                        fs_df = None
+            else:  # 연결로 html이 출력되어 값이 있는 경우
+                _, data_columns = split_columns_concept_data(fs_df['bs'].columns)
+                if np.all(data_columns == None):
+                    fs_df = None
     except:
         fs_df = None # report 하나씩 error가 발생하는 경우가 있어서 pass. 이는 수동으로 입력하기로.
     return fs_df
