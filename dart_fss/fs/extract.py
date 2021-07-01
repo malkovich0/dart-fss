@@ -1231,7 +1231,8 @@ def extract(corp_code: str,
             report_tp: Union[str, List[str]] = 'annual',
             lang: str = 'ko',
             separator: bool = True,
-            dataset: str = 'xbrl') -> FinancialStatement:
+            dataset: str = 'xbrl',
+            error_list: list = None) -> FinancialStatement:
     """
     재무제표 검색
 
@@ -1314,7 +1315,7 @@ def extract(corp_code: str,
                                                     separator=separator)
                         if statements is None:
                             # None인 경우의 rcp를 모아서 저장하는 code 추가
-                            error_list_rcp.append(report.rcp_no)
+                            error_list.append(report.rcp_no)
                             warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
                             warnings.warn(warnings_text, RuntimeWarning)
                         else:
@@ -1332,7 +1333,7 @@ def extract(corp_code: str,
                                                      dataset=dataset)
                         if nstatements is None:
                             # None인 경우의 rcp를 모아서 저장하는 code 추가
-                            error_list_rcp.append(report.rcp_no)
+                            error_list.append(report.rcp_no)
                             warnings_text = 'Unable to extract financial statements: {}.'.format(report.to_dict())
                             warnings.warn(warnings_text, RuntimeWarning)
                         else:
@@ -1358,7 +1359,7 @@ def extract(corp_code: str,
             'lang': lang,
             'separator': separator
         }
-        return FinancialStatement(statements, label_df, info)
+        return FinancialStatement(statements, label_df, info), error_list
     except Exception as e:
         if report is not None:
             msg = 'An error occurred while fetching or analyzing {}.'.format(report.to_dict())
